@@ -341,3 +341,4 @@ The default store location should be `memory.ram`. Enabled by default.
 - [ ] Write JSON Schema definiion
 - [ ] Consider how something like ALPS (a hypermedia profiling spec) could be used
 - [ ] Establish a tighter convention or pattern around the use of the `@` symbol
+- [ ] Establish constructs for expressing how and when entities should be refreshed (perhaps this should be done at the source level)
