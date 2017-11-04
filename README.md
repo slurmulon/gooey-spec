@@ -126,7 +126,7 @@ Gooey solves the variable state represenation issue by:
 
 ### Example
 
-```
+```js
 {
   "@spec": "gooey",
   "@version": "1.0",
