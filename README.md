@@ -247,9 +247,9 @@ Gooey solves the variable state represenation issue by:
 }
 ```
 
-You only have to describe the `states` properties that have variation. In other words, they stem from multiple sources.
+You only have to define `@entities` that have variation. In other words, only those entities with states that can stem from multiple sources or have multiple formats.
 
-Any unmentioned properties of an entitiy are essentially ignored since their state management is trivial - just use whatever the current value is.
+Any unmentioned properties of an entitiy are essentially ignored since their state management is trivial - just use whatever the current value is and assume the format will always be the same.
 
 Primitive, static and non-relational values never simply need to be synchronized with other entities, unlike `user.cart` and `cart`.
 
