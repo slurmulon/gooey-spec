@@ -234,6 +234,7 @@ Gooey solves the variable state represenation issue by:
       "params": {
         "id": {
           "rel": "one",
+          "entity": "order",
           "data": "#/uuid"
         }
       }
@@ -332,6 +333,7 @@ The default store location should be `memory.ram`. Enabled by default.
 
 ## Concerns
 
+- Would this solution box people in to overly opinionated design? I think not since I keep running into the same problems with similar yet different solutions, but perhaps others can convince me otherwise.
 - There is no need to save entities in too many sources. For instance, it's often adequate to only need `api` and `memory`. Perhaps an `offline` source as well.
 
 ## Future
