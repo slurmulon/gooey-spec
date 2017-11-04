@@ -72,7 +72,7 @@ Although very useful, this design, which we will call **variable entity state re
 - Synchronizing the states between related entities often requires an additional layer of coordination/delegation (e.g. publish/subscribe, long polling, etc.).
 - Ensuring that the states of parent entities are ready and loaded before their children is typically non-trivial, especially in complex views with many entity instances.
 - There are essentially no well-established patterns for managing a tree of resource entity states that must be synchronized with a RESTful API.
-- Using query tools such as GraphQL exacerbates this problem since data can come not only from any number of sources, but in any number of forms.
+- Using query tools such as GraphQL exacerbates this problem since data can come from any number of sources in any number of forms.
 
 In short, designing and implementing elegant state management solutions can be enormously difficult. Because the use of standards, conventions and semantics in this problem has been historically minimal to non-existent, sharing repeatable solutions or even encapsulating common behavior (especially across frameworks) has proven to be a clumsy and seemingly intractable task.
 
