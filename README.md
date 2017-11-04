@@ -87,9 +87,9 @@ It is specifically designed to provide semantic solutions the state problems tha
 Gooey solves the variable state represenation issue by:
 
 1. Formally describing the **relationships** between localized and remote API resource entity states.
-2. Outlining how these states should be managed, opening up interesting opportunities for highly generalized state management librariesi and state debugging tools.
-3. Defining the potential origins of a state, such as local session memory, a Restful Web API resource, a Service Worker, or IndexedDB.
-4. Describing a procedure for resolving URI templates using active entity states (`/v1/orders/{$ref.shop.current.uuid}`)
+2. Outlining how these states and their relationships should be managed, opening up interesting opportunities for highly generalized state management libraries and state debugging tools.
+3. Defining the potential origins/sources of a state, such as local session memory, the browser URL, a Restful Web API resource, a Service Worker, or IndexedDB.
+4. Describing a procedure for resolving URI templates using active entity states (`/v1/orders/{$ref.orders.one.uuid}`)
 5. Ensuring states are compatible with the HTML5 History API
 
 ### Design
@@ -146,9 +146,8 @@ Gooey solves the variable state represenation issue by:
     },
     "api": {
       "type": "url",
-      "value": "http://{s}.madhax.io/{v}/",
+      "value": "http://{s}.madhax.io/v1/",
       "root": true
-      "version": "v1",
       "shards": [
         'api1',
         'api2',
@@ -341,3 +340,4 @@ The default store location should be `memory.ram`. Enabled by default.
 - [ ] Talk about entities vs. entity instances
 - [ ] Write JSON Schema definiion
 - [ ] Consider how something like ALPS (a hypermedia profiling spec) could be used
+- [ ] Establish a tighter convention or pattern around the use of the `@` symbol
