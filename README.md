@@ -95,6 +95,7 @@ Gooey solves the variable state represenation issue by:
 ### Design
 
 - Complete interopability with any JSON-based Hypermedia specification (JSON Hyper-Schema, JSON L-D, HAL, Siren, etc.)
+- Differentiate between state classes/schemas and state instances
 - Allow freedom of implementation beyond the core semantics constructs, especially `rels`
 - Targeted at the most common state management problems, such as normalized vs denormalized representations and multiple sources of data
 - States can be initialized from one or more of the provided sources
@@ -308,6 +309,10 @@ Generally focused on the front-end, but `@entities` should ideally match the dom
 Optional. Specifies a JSON Pointer that references another entity's state..
 
 Prevents the need for duplication and keeps your definitions DRY.
+
+### `@classes`
+
+Optional. Defines a collection of semantic tags to associate with an entity and its instances.
 
 ### `@routes`
 
