@@ -347,6 +347,7 @@ The default store location should be `memory.ram`. Enabled by default.
 - [ ] Talk about entity schemas vs. entity instances
 - [ ] Define implementationn API
 - [ ] Establish state transaction standards (e.g. `dispatch`, `commit`)
+- [ ] Establish core state transactions (e.g. `fetch`, `create`, `update`, `delete`, `reset`)
 - [ ] Support wildcard state transactions for both entity schemas and entity instances
 - [ ] Write JSON Schema definiion
 - [ ] Consider how something like ALPS (a hypermedia profiling spec) could be used
