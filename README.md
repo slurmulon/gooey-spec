@@ -344,7 +344,10 @@ The default store location should be `memory.ram`. Enabled by default.
 ## Future
 
 - [ ] Establish lexicon
-- [ ] Talk about entities vs. entity instances
+- [ ] Talk about entity schemas vs. entity instances
+- [ ] Define implementationn API
+- [ ] Establish state transaction standards (e.g. `dispatch`, `commit`)
+- [ ] Support wildcard state transactions for both entity schemas and entity instances
 - [ ] Write JSON Schema definiion
 - [ ] Consider how something like ALPS (a hypermedia profiling spec) could be used
 - [ ] Establish a tighter convention or pattern around the use of the `@` symbol
