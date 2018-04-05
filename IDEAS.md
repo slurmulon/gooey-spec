@@ -4,11 +4,12 @@
 
 ```js
 import gooey from 'gooey'
-import config from './config.gooey.json'
+import config from './config.json'
 
-const stores = new gooey.Module(config)
+export const module = new gooey.Module(config)
 
-export const store = new gooey.St
+export const products = module.store('products')
+export const cart = module.store('cart')
 ```
 
 ## State Transactions
@@ -57,5 +58,25 @@ this.store.dispatch({
   state: 'products/one',
   action: 'update',
   data: { id: 123, name: 'Kale' kind: 'vegetable' }
+})
+```
+
+Go back to a previous entity state
+
+```js
+this.store.dispatch({
+  state: 'cart/one',
+  action: 'history.past',
+  data: -1 // make this the default value
+})
+```
+
+Go forward through history to another entity state
+
+```js
+this.store.dispatch({
+  state: 'cart/all',
+  action: 'history.future',
+  data: 2
 })
 ```
