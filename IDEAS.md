@@ -49,3 +49,13 @@ this.store.dispatch({
   action: 'delete'
 })
 ```
+
+Select a single element as `one`
+
+```js
+this.store.dispatch({
+  state: 'products/one',
+  action: 'update',
+  data: { id: 123, name: 'Kale' kind: 'vegetable' }
+})
+```
