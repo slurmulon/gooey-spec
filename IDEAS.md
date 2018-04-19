@@ -80,3 +80,37 @@ this.store.dispatch({
   data: 2
 })
 ```
+
+Update state for entities matching either a JSON Path or a Function
+
+```js
+this.store.dispatch({
+  state: 'cart/all',
+  action: 'delete',
+  only: entity => entity.price > 100
+})
+```
+
+JSON Schema states that are implicitly validated
+
+```js
+export default {
+  state: {
+    user: require('schemas/user.json'),
+    email: require('schemas/email.json')
+  },
+
+  actions: {
+    setEmail (state, email) {
+      state.email = email // will throw a TypeError if the `email` doesn't pass the `email.json` validation
+    }
+  }
+}
+```
+
+---
+
+```js
+this.store.dispatch({
+  state: 'cart'/all'
+})
