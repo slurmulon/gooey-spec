@@ -108,9 +108,142 @@ export default {
 }
 ```
 
+### Syncronization Strategies
+
+Provide simple string configurations for common data syncronization strategies. Can be overridden with a custom `Function` instead.
+
+```js
+this.store.dispatch({
+  state: '#/cart/all',
+  sync: 'push', // default (i.e. append/push cart/all with results - grows indefinitely)
+  action: 'fetch'
+})
+```
 ---
 
 ```js
 this.store.dispatch({
   state: 'cart'/all'
+  sync: 'replace', // replace cart/all with results
+  action: 'fetch'
 })
+```
+
+## Actions
+
+Static/literal
+
+```js
+actions: {
+  setEmail (state, email) {
+    state.email = email
+  }
+}
+```
+
+Dyanmic/interpreted
+
+(hmm, maybe don't need this if `actions` pertain to an entity instance instead of just an entity
+
+```js
+actions: {
+  setEmail: (context) => (state, email) => {
+    
+  }
+}
+```
+
+# Architecture
+
+## Outlines
+
+ - Defines the relationships and flow strategies between entities in your domain (would probably replace everything described in current README - lol)
+
+### Example
+
+```js
+new Gooey.Outline({
+  user: {
+    @source: '/v1/user',
+    @strategies: {
+      @fetch: 'always-fetch',
+      @change: 'clear-children'
+    },
+    @children: {
+      farms: {
+        @source: '/v1/farms',
+        @strategies: {
+          @fetch: 'always-fetch'
+        },
+        @children: {
+          crops: {
+            @source: ({ parent }) => `/v1/farms/${parent.uuid}/crops`
+            @streategies: {
+              @fetch: 'expect-or-fetch'
+            }
+          }
+        }
+      }
+    }
+  }
+})
+```
+
+## Entities
+
+ - Contains unmodified representations of entity instances, from either API responses or in-memory representations
+
+## Semantics
+
+ - Contains meta-descriptive semantics for entity instances
+
+### Example
+
+```
+{
+  "@rel": "parent",
+  "@type": "Post"
+  "@id": "abcdef-123456",
+  "@children": [
+    { "@type": "Comment", "@id": "zyxl-123456" }
+  ]
+}
+```
+
+```
+{
+  "@rel": "draft",
+  "@type": "Comment",
+  "@id": abcdef-123456,
+  "data": {
+    "body": "Hi there,"
+  }
+}
+```
+
+## Meta
+
+ - Contains session-based meta data for entity instances (try to avoid this, but could be useful re: separation of concerns)
+
+### Example
+
+```
+{
+  "@entity": {
+    "@type": "Post",
+    "@id": "12345"
+  },
+  "@meta": {
+    "selected": true
+  }
+}
+```
+
+## Dataflow
+
+ ---> = 1:1
+ -->> = 1:M
+ l -> r = Callback
+
+DispatchAction(Data) ---> Broadcast(EntitySources, ParentEntity?) -->> SyncSubscribers(EntitySources) -->> Recurse(Broadcast, [ChildEntitySources, ChildEntity => ChildEntity.Parent])
+
