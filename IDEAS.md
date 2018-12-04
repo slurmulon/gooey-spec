@@ -153,11 +153,14 @@ actions: {
 }
 ```
 
+We might also want to allow the user to provide the `entity` `rel` in which this action is relevant to
+
 # Architecture
 
 ## Outlines
 
- - Defines the relationships and flow strategies between entities in your domain (would probably replace everything described in current README - lol)
+ - Defines the relationships and dataflow strategies between entities in your domain (would probably replace everything described in current README - lol)
+ - Any `String` value may also be provided as a `Function`, enabling a high degree of flexibility
 
 ### Example
 
@@ -192,6 +195,8 @@ new Gooey.Outline({
 ## Entities
 
  - Contains unmodified representations of entity instances, from either API responses or in-memory representations
+ - May be provided in either normalized or denormalized forms (via the `normalizer` package)
+ - Allow entity instances to be contextual bound to their parent entity instance or to be context-free
 
 ## Semantics
 
@@ -214,16 +219,13 @@ new Gooey.Outline({
 {
   "@rel": "draft",
   "@type": "Comment",
-  "@id": abcdef-123456,
-  "data": {
-    "body": "Hi there,"
-  }
+  "@id": "abcdef-123456" // this ID links back to a pre-existing entity in the state tree
 }
 ```
 
 ## Meta
 
- - Contains session-based meta data for entity instances (try to avoid this, but could be useful re: separation of concerns)
+Contains session-based meta data for entity instances (try to avoid this, but could be useful re: separation of concerns)
 
 ### Example
 
@@ -238,6 +240,79 @@ new Gooey.Outline({
   }
 }
 ```
+
+## Strategies
+
+Reserved and user-provided functionality that determines how entities should behave whenever their overarching context changes.
+
+### Example
+
+The following example specifies that, when loaded for first use, the entity's state should always be fetched from its root source.
+
+It also specifies that all `@children` entity states should be whiped out entirely whenever the entity's context changes.
+
+```
+@strategies: {
+  @fetch: 'always-fetch',
+  @change: 'clear-children'
+},
+```
+
+## Actions
+
+Reserved and user-provided functions that organize and coordinate state transitions
+
+### Examples
+
+#### Reserved
+
+ - `fetch`,
+ - `delete`,
+ - `create`,
+ - `replace`,
+ - `reset`
+ - etc.
+
+All of the reserved actions will be both prefixed with `$` (e.g. `$fetch`) and vanilla (e.g. `fetch`).
+
+By default, the vanilla action simply calls the same action but prefixed with `$`.
+
+This allows the user to either override the reserved action behavior entirely, or to simply wrap it with thier own logic and then invoke the default reserved behavior as they wish.
+
+#### Custom
+
+```
+action (context, entity, data)
+```
+
+Where `context` is implicitly provided and contains:
+ - `commit`
+ - `dispatch`
+
+And `entity` is implicitly provided and contains:
+ - `data`
+ - `meta`
+ - `semantics`
+
+And `data` is an arbitrary object provided by the user
+
+## Mutations
+
+Reserved and user-provided functions that implement and commit state transitions
+
+Whenever `meta` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
+
+### Examples
+
+```
+mutation ({ state, meta, semantics }, entity)
+```
+
+Where `entity` is a special object containing:
+
+ - `data`
+ - `meta`
+ - `semantics`
 
 ## Dataflow
 
