@@ -1,6 +1,6 @@
 # gooey
 
-> :honey_pot: State blueprints for consumers of Hypermedia-driven RESTful APIs
+> :honey_pot: Semantic state blueprints for consumers of RESTful Web APIs
 
 ---
 
@@ -94,13 +94,14 @@ Gooey solves the variable state represenation issue by:
 
 ### Design
 
-- Complete interopability with any JSON-based Hypermedia specification (JSON Hyper-Schema, JSON L-D, HAL, Siren, etc.)
 - Differentiate between state classes/schemas and state instances
 - Allow freedom of implementation beyond the core semantics constructs, especially `rels`
 - Targeted at the most common state management problems, such as normalized vs denormalized representations and multiple sources of data
 - States can be initialized from one or more of the provided sources
+- State transitions may be version controlled
 - Support referencing of elements using JSON Pointers in order to keep definitions DRY
 - Complementary and minimally invasive. You don't always have to use it
+- Complete interopability with any JSON-based Hypermedia specification (JSON Hyper-Schema, JSON L-D, HAL, Siren, etc.)
 
 ### Flows
 
@@ -306,7 +307,7 @@ Generally focused on the front-end, but `@entities` should ideally match the dom
 
 ### `@ref`
 
-Optional. Specifies a JSON Pointer that references another entity's state..
+Optional. Specifies a JSON Pointer that references another entity's state.
 
 Prevents the need for duplication and keeps your definitions DRY.
 

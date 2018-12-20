@@ -159,30 +159,52 @@ We might also want to allow the user to provide the `entity` `rel` in which this
 
 ## Outlines
 
- - Defines the relationships and dataflow strategies between entities in your domain (would probably replace everything described in current README - lol)
+ - Defines the relationships and dataflow strategies between entities in a 1:N domain tree (would probably replace everything described in current README - lol)
+ - Entity instances can either be composed of arbitrary data or references to other entity instances. This allows for transparent normalization and denormalization of entity instances and their related members.
+ - Entity instances are scoped by their parent entity's context. `dispatch` and `commit` actions are delegated via this context.
  - Any `String` value may also be provided as a `Function`, enabling a high degree of flexibility
 
 ### Example
 
 ```js
 new Gooey.Outline({
-  user: {
-    @source: '/v1/user',
-    @strategies: {
-      @fetch: 'always-fetch',
-      @change: 'clear-children'
-    },
-    @children: {
-      farms: {
-        @source: '/v1/farms',
-        @strategies: {
-          @fetch: 'always-fetch'
-        },
-        @children: {
-          crops: {
-            @source: ({ parent }) => `/v1/farms/${parent.uuid}/crops`
-            @streategies: {
-              @fetch: 'expect-or-fetch'
+  @entities: {
+    user: {
+      @source: {
+        @url: '/v1/user'
+      },
+      @strategies: {
+        @fetch: 'always-fetch',
+        @change: 'clear-children',
+        @sync: 'replace'
+      },
+      @entities: {
+        libraries: {
+          @source: {
+            @url: '/v1/libraries'
+          },
+          @strategies: {
+            @fetch: 'always-fetch',
+            @sync: 'push'
+          },
+          @entities: {
+            books: {
+              @source: {
+                @url: ({ parent }) => `/v1/library/${parent.uuid}/books`
+              },
+              @streategies: {
+                @fetch: 'expect-or-fetch'
+              },
+              @entities: {
+                reviews: {
+                  @source: {
+                    @url: ({ parent }) => `/v1/books/${parent.uuid}/reviews`
+                  },
+                  @strategies: {
+                    @history: true
+                  }
+                }
+              }
             }
           }
         }
@@ -194,23 +216,47 @@ new Gooey.Outline({
 
 ## Entities
 
- - Contains unmodified representations of entity instances, from either API responses or in-memory representations
+ - Contains unmodified representations of entity instances, from either remote API responses or local representations
  - May be provided in either normalized or denormalized forms (via the `normalizer` package)
- - Allow entity instances to be contextual bound to their parent entity instance or to be context-free
+ - Allow entity instances to be contextually bound to their parent entity instance or to be context-free (which can be achieved by omitting the `@change` strategy)
+
+### Props
+
+ - `store`: Provides the entity's store context with `dispatch` and `commit` actions
+ - `all`: Provides a reference to every entity instance associated with the entity`
 
 ## Semantics
 
- - Contains meta-descriptive semantics for entity instances
+ - Contains semantics that describe the relationships between entity instances
+ - Can also be used to describe a relationship to single enity instance (to itself)
+
+### Rels
+
+ - `parent`
+ - `all`
+ - `page`
 
 ### Example
 
 ```
 {
   "@rel": "parent",
-  "@type": "Post"
+  "@type": "article"
   "@id": "abcdef-123456",
-  "@children": [
-    { "@type": "Comment", "@id": "zyxl-123456" }
+  "@entities": [
+    { "@type": "comment", "@id": "zyxl-123456" }
+  ]
+}
+```
+
+```
+{
+  "@rel": "page",
+  "@type": "comment",
+  "@data": { "num": 5 },
+  "@entities": [
+    { "type": "comment", "@id": "8674934" },
+    { "type": "comment", "@id": "5375858" }
   ]
 }
 ```
@@ -218,38 +264,58 @@ new Gooey.Outline({
 ```
 {
   "@rel": "draft",
-  "@type": "Comment",
-  "@id": "abcdef-123456" // this ID links back to a pre-existing entity in the state tree
+  "@type": "comment",
+  "@id": "abcdef-123456" // this ID links back to a pre-existing entity in the state store
 }
 ```
 
-## Meta
+## Context
 
-Contains session-based meta data for entity instances (try to avoid this, but could be useful re: separation of concerns)
+Contains a session-based context object for describing collective data between entity instances (maybe try to avoid this, but could be useful re: separation of concerns).
+
+Contexts are in practice scoped by entity instead of entity instance.
+
+Any changes taken to the entity context can be delegated to that entity's instances and child entities.
+
+Allows the original entity instance states to remain prestine.
 
 ### Example
 
 ```
 {
   "@entity": {
-    "@type": "Post",
+    "@type": "article",
     "@id": "12345"
   },
-  "@meta": {
-    "selected": true
+  "@context": {
+    "selected": true,
+    "viewed": true
+  }
+}
+```
+
+or
+
+```
+{
+  "@entity": {
+    "@type": "article"
+  },
+  "@context": {
+    "selected": 12345
   }
 }
 ```
 
 ## Strategies
 
-Reserved and user-provided functionality that determines how entities should behave whenever their overarching context changes.
+Reserved and user-provided functionality that determines how an entity should behave whenever any of its entity instance context objects change.
 
 ### Example
 
 The following example specifies that, when loaded for first use, the entity's state should always be fetched from its root source.
 
-It also specifies that all `@children` entity states should be whiped out entirely whenever the entity's context changes.
+It also specifies that all children `@entity` states should be whiped out entirely whenever the entity's context changes.
 
 ```
 @strategies: {
@@ -266,10 +332,11 @@ Reserved and user-provided functions that organize and coordinate state transiti
 
 #### Reserved
 
- - `fetch`,
- - `delete`,
- - `create`,
- - `replace`,
+ - `fetch`
+ - `create`
+ - `update`
+ - `replace`
+ - `delete`
  - `reset`
  - etc.
 
@@ -291,8 +358,8 @@ Where `context` is implicitly provided and contains:
 
 And `entity` is implicitly provided and contains:
  - `data`
- - `meta`
- - `semantics`
+ - `rels`
+ - `context`
 
 And `data` is an arbitrary object provided by the user
 
@@ -300,19 +367,26 @@ And `data` is an arbitrary object provided by the user
 
 Reserved and user-provided functions that implement and commit state transitions
 
-Whenever `meta` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
+Whenever `context` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
 
 ### Examples
 
 ```
-mutation ({ state, meta, semantics }, entity)
+mutation ({ entity, instance, rootInstance }, data)
 ```
 
 Where `entity` is a special object containing:
 
- - `data`
- - `meta`
- - `semantics`
+ - `rels`
+ - `context`
+
+and `instance` represents the canonical normalized state of the entity instance and may be safely modfified in mutations.
+
+Any changes made to entity properties that are relationships/links to other entities will be delegated to those related entity instances.
+
+An entity's `context` may also be safely modified in mutations. Changes to this context will be delegated to all entity instances of that type.
+
+Mutations may not trigger other mutations (actions are for grouping together and orchestrating mutations).
 
 ## Dataflow
 
@@ -320,5 +394,12 @@ Where `entity` is a special object containing:
  -->> = 1:M
  l -> r = Callback
 
-DispatchAction(Data) ---> Broadcast(EntitySources, ParentEntity?) -->> SyncSubscribers(EntitySources) -->> Recurse(Broadcast, [ChildEntitySources, ChildEntity => ChildEntity.Parent])
+DispatchAction(Rel, Entity, Data) --->
+  EntityInstances = FindEntities(Entity, Rel)
 
+  Broadcast(Entity, EntityInstances, ParentEntity?) -->>
+    EntityStores = StoresOf(Entity)
+
+    SyncSubscribers(EntityStores)
+    SyncSubscribers(EntityInstances) -->>
+      Recurse(Broadcast, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
