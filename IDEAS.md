@@ -382,6 +382,8 @@ And `data` is an arbitrary object provided by the user that may be delagated to 
 
 Reserved and user-provided functions that implement and commit state transitions to entity instances and contexts
 
+Under the hood, mutations are invoking and performing state synchronizations
+
 Whenever `context` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
 
 ### Examples
@@ -410,15 +412,37 @@ Mutations may not trigger other mutations (actions are for grouping together and
  -->> = 1:M
  l -> r = Callback
 
-DispatchAction(Topic, Rel, Entity, Data) --->
+### Synchronizations
+
+Sync(Rel, Entity, Id, Instance) -->>
+  EntitySources = SourcesOf(Entity)
+  ChildEntityInstances = DenormalizeEntity(Entity, Instance)
+
+  # TODO: Probably iterate through each Store here
+  for Source in EntitySources
+    SaveState(Source, Rel, Entity, Id, Instance)
+
+  for ChildInstance in ChildEntityInstances
+    Commit('update', ChildEntity, ChildInstance)
+
+### Mutations
+
+### Actions
+
+Action(Topic, Rel, Entity, Data) --->
   EntityInstances = FindEntities(Entity, Rel)
 
-  Broadcast(Entity, EntityInstances, ParentEntity?) -->>
+  Dispatch(Entity, EntityInstances, ParentEntity?) -->>
     EntitySources = SourcesOf(Entity)
 
-    SyncSubscribers(Topic, Rel, EntitySources)
-    SyncSubscribers(Topic, Rel, EntityInstances) -->>
-      CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance.ID, Data)
-      CreateExplicitSemanticRelationships(Rel, Entity, EntityInstance.ID, Data)
+    # SyncEntityContext(Entity, 
 
-      Recurse(Broadcast, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
+    SyncSubscribers(Topic, Rel, EntityInstances) -->>
+      ChildEntityInstances = DenormalizeEntity(Data)
+
+      # QUESTION: Is this where we should also delegate `create` and `update` actions to child entity instances?
+      CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance, ChildEntityInstances)
+
+      Recurse(Dispatch, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
+
+### Broadcasts
