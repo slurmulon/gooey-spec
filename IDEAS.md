@@ -85,7 +85,8 @@ Update state for entities matching either a JSON Path or a Function
 
 ```js
 this.store.dispatch({
-  state: 'cart/all',
+  store: 'cart',
+  rel: 'all'
   action: 'delete',
   only: entity => entity.price > 100
 })
@@ -392,7 +393,7 @@ Where `entity` is a special object containing:
 
 and `instance` represents the canonical normalized state of the entity instance and may be safely modfified in mutations.
 
-Any changes made to entity properties that are relationships/links to other entities will be delegated to those related entity instances.
+Any changes made to entity properties that are relationships/links to other entities will be delegated to those related entity instances via their internal `update` mutation.
 
 An entity's `context` may also be safely modified in mutations. Changes to this context will be delegated to all entity instances of that type.
  - Actually, that might be dumb. We might want tointroduce a special action-like construct for delegating events to entity contexts. We can call it `broadcast` or something.
@@ -405,12 +406,12 @@ Mutations may not trigger other mutations (actions are for grouping together and
  -->> = 1:M
  l -> r = Callback
 
-DispatchAction(Rel, Entity, Data) --->
+DispatchAction(Topic, Rel, Entity, Data) --->
   EntityInstances = FindEntities(Entity, Rel)
 
   Broadcast(Entity, EntityInstances, ParentEntity?) -->>
     EntitySources = SourcesOf(Entity)
 
-    SyncSubscribers(EntitySources)
-    SyncSubscribers(EntityInstances) -->>
+    SyncSubscribers(Topic, Rel, EntitySources)
+    SyncSubscribers(Topic, Rel, EntityInstances) -->>
       Recurse(Broadcast, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
