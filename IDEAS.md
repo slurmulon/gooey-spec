@@ -66,7 +66,7 @@ Go back to a previous entity state
 ```js
 this.store.dispatch({
   state: 'cart/one',
-  action: 'history.past',
+  action: 'history-past',
   data: -1 // make this the default value
 })
 ```
@@ -76,7 +76,7 @@ Go forward through history to another entity state
 ```js
 this.store.dispatch({
   state: 'cart/all',
-  action: 'history.future',
+  action: 'history-future',
   data: 2
 })
 ```
@@ -337,6 +337,10 @@ It also specifies that all children `@entity` states should be whiped out entire
 
 Reserved and user-provided functions that organize and coordinate state transitions
 
+Actions are internally provided an ephemeral `transactions` tree that tracks every single action that was called in relation
+
+Actions may be atomic but are non-atomic by default (need a flag for this)
+
 ### Examples
 
 #### Reserved
@@ -414,4 +418,7 @@ DispatchAction(Topic, Rel, Entity, Data) --->
 
     SyncSubscribers(Topic, Rel, EntitySources)
     SyncSubscribers(Topic, Rel, EntityInstances) -->>
+      CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance.ID, Data)
+      CreateExplicitSemanticRelationships(Rel, Entity, EntityInstance.ID, Data)
+
       Recurse(Broadcast, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
