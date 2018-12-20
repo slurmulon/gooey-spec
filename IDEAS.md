@@ -169,21 +169,25 @@ We might also want to allow the user to provide the `entity` `rel` in which this
 
 ```js
 new Gooey.Outline({
-  @sources: { ... },
+  @origins: {
+    // ...
+  },
   @entities: {
     user: {
-      @source: {
-        @url: '/v1/user'
+      @type: 'object',
+      @origins: {
+        api: '/v1/user'
       },
       @strategies: {
         @fetch: 'always-fetch',
-        @change: 'clear-children',
+        // @change: 'clear-children',
         @sync: 'replace'
       },
       @entities: {
         libraries: {
-          @source: {
-            @url: '/v1/libraries'
+          @type: 'array',
+          @origins: {
+            api: '/v1/libraries'
           },
           @strategies: {
             @fetch: 'expect-or-fetch',
@@ -191,8 +195,10 @@ new Gooey.Outline({
           },
           @entities: {
             books: {
-              @source: {
-                @url: ({ parent }) => `/v1/library/${parent.uuid}/books`
+              @type: 'array',
+              @origins: {
+                api: ({ parent }) => `/v1/library/${parent.instance.uuid}/books`,
+                object: ({ parent }) => parent.instance.books
               },
               @strategies: {
                 @fetch: 'expect-or-fetch',
@@ -200,8 +206,9 @@ new Gooey.Outline({
               },
               @entities: {
                 reviews: {
-                  @source: {
-                    @url: ({ parent }) => `/v1/books/${parent.uuid}/reviews`
+                  @type: 'array',
+                  @origins: {
+                    api: ({ parent }) => `/v1/books/${parent.instance.uuid}/reviews`
                   },
                   @strategies: {
                     @history: true
@@ -274,7 +281,7 @@ new Gooey.Outline({
 
 Contains a session-based context object for describing collective data between entity instances (maybe try to avoid this, but could be useful re: separation of concerns).
 
-Contexts are in practice scoped by entity instead of entity instance.
+Contexts are, in practice, scoped by entity instead of entity instance.
 
 Any changes taken to the entity context can be delegated to that entity's instances and child entities.
 
@@ -382,7 +389,9 @@ And `data` is an arbitrary object provided by the user that may be delagated to 
 
 Reserved and user-provided functions that implement and commit state transitions to entity instances and contexts
 
-Under the hood, mutations are invoking and performing state synchronizations
+Under the hood, mutations are invoking and performing state synchronizations.
+
+Each state synchronization results in a session-based global transaction to be created.
 
 Whenever `context` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
 
@@ -408,28 +417,35 @@ Mutations may not trigger other mutations (actions are for grouping together and
 
 ## Dataflow
 
+```
  ---> = 1:1
  -->> = 1:M
  l -> r = Callback
+```
 
 ### Synchronizations
 
+```
 Sync(Rel, Entity, Id, Instance) -->>
   EntitySources = SourcesOf(Entity)
-  EntitySyncStrat = SyncStrategyOf(Entity)
+  EntitySyncStrategy = SyncStrategyOf(Entity)
   ChildEntityInstances = NormalizedChildEntityInstances(Entity, Instance)
 
   # TODO: Probably iterate through each Store here
   for Source in EntitySources
-    SaveState(EntitySyncStrat, Source, Rel, Entity, Id, Instance)
+    State = SaveState(EntitySyncStrategy, Source, Rel, Entity, Id, Instance)
 
-  for (ChildEntity, ChildInstance) in ChildEntityInstances
-    Commit('$update', ChildEntity, ChildInstance)
+    CreateTransaction(State)
+
+  for (ChildEntity, ChildId, ChildInstance) in ChildEntityInstances
+    Sync(Rel, ChildId, ChildEntity, ChildInstance)
+```
 
 ### Mutations
 
 ### Actions
 
+```
 Action(Topic, Rel, Entity, Data) --->
   EntityInstances = FindEntities(Entity, Rel)
 
@@ -448,5 +464,6 @@ Action(Topic, Rel, Entity, Data) --->
       # CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance, ChildEntityInstances)
 
       Recurse(Dispatch, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
+```
 
 ### Broadcasts
