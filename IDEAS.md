@@ -416,14 +416,15 @@ Mutations may not trigger other mutations (actions are for grouping together and
 
 Sync(Rel, Entity, Id, Instance) -->>
   EntitySources = SourcesOf(Entity)
-  ChildEntityInstances = DenormalizeEntity(Entity, Instance)
+  EntitySyncStrat = SyncStrategyOf(Entity)
+  ChildEntityInstances = NormalizedChildEntityInstances(Entity, Instance)
 
   # TODO: Probably iterate through each Store here
   for Source in EntitySources
-    SaveState(Source, Rel, Entity, Id, Instance)
+    SaveState(EntitySyncStrat, Source, Rel, Entity, Id, Instance)
 
-  for ChildInstance in ChildEntityInstances
-    Commit('update', ChildEntity, ChildInstance)
+  for (ChildEntity, ChildInstance) in ChildEntityInstances
+    Commit('$update', ChildEntity, ChildInstance)
 
 ### Mutations
 
@@ -433,15 +434,18 @@ Action(Topic, Rel, Entity, Data) --->
   EntityInstances = FindEntities(Entity, Rel)
 
   Dispatch(Entity, EntityInstances, ParentEntity?) -->>
-    EntitySources = SourcesOf(Entity)
+    for (EntityID, EntityInstance) in EntityInstances
+      Sync(Rel, Entity, EntityID, EntityInstance)
+
+    # EntitySources = SourcesOf(Entity)
 
     # SyncEntityContext(Entity, 
 
     SyncSubscribers(Topic, Rel, EntityInstances) -->>
-      ChildEntityInstances = DenormalizeEntity(Data)
+      # ChildEntityInstances = DenormalizeEntity(Data)
 
       # QUESTION: Is this where we should also delegate `create` and `update` actions to child entity instances?
-      CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance, ChildEntityInstances)
+      # CreateImplicitSemanticRelationships(Rel, Entity, EntityInstance, ChildEntityInstances)
 
       Recurse(Dispatch, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
 
