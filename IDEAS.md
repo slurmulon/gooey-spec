@@ -168,6 +168,7 @@ We might also want to allow the user to provide the `entity` `rel` in which this
 
 ```js
 new Gooey.Outline({
+  @sources: { ... },
   @entities: {
     user: {
       @source: {
@@ -184,7 +185,7 @@ new Gooey.Outline({
             @url: '/v1/libraries'
           },
           @strategies: {
-            @fetch: 'always-fetch',
+            @fetch: 'expect-or-fetch',
             @sync: 'push'
           },
           @entities: {
@@ -192,8 +193,9 @@ new Gooey.Outline({
               @source: {
                 @url: ({ parent }) => `/v1/library/${parent.uuid}/books`
               },
-              @streategies: {
-                @fetch: 'expect-or-fetch'
+              @strategies: {
+                @fetch: 'expect-or-fetch',
+                @sync: 'push'
               },
               @entities: {
                 reviews: {
@@ -217,13 +219,9 @@ new Gooey.Outline({
 ## Entities
 
  - Contains unmodified representations of entity instances, from either remote API responses or local representations
- - May be provided in either normalized or denormalized forms (via the `normalizer` package)
- - Allow entity instances to be contextually bound to their parent entity instance or to be context-free (which can be achieved by omitting the `@change` strategy)
-
-### Props
-
- - `store`: Provides the entity's store context with `dispatch` and `commit` actions
- - `all`: Provides a reference to every entity instance associated with the entity`
+ - Entity instances may be provided in either normalized or denormalized forms (via the `normalizer` package)
+ - Entity instance states are tracked in a key-value store and relationships between them are tracked via semantic rels
+ - Entity instances can be contextually bound to their parent entity instance or to be context-free (which can be achieved by omitting the `@change` strategy)
 
 ## Semantics
 
@@ -231,6 +229,8 @@ new Gooey.Outline({
  - Can also be used to describe a relationship to single enity instance (to itself)
 
 ### Rels
+
+@see https://www.iana.org/assignments/link-relations/link-relations.xhtml
 
  - `parent`
  - `all`
@@ -311,6 +311,14 @@ or
 
 Reserved and user-provided functionality that determines how an entity should behave whenever any of its entity instance context objects change.
 
+Strategies provided as a `Function` accept the following arguments:
+
+```
+strategy ({ store, instance, entity })
+```
+
+ - `store`: Allows strategies to invoke actions or mutations based on custom conditions via `dispatch` and `commit`
+
 ### Example
 
 The following example specifies that, when loaded for first use, the entity's state should always be fetched from its root source.
@@ -349,23 +357,25 @@ This allows the user to either override the reserved action behavior entirely, o
 #### Custom
 
 ```
-action (context, entity, data)
+action ({ context, entity, instance }, data)
 ```
 
 Where `context` is implicitly provided and contains:
- - `commit`
- - `dispatch`
+ - `commit`: Calls a mutation on a single entity instance
+ - `dispatch`: Calls an action on a single entity instance
+ - `broadcast`: Calls an action scoped to the entity's context, affecting all entity instances
 
 And `entity` is implicitly provided and contains:
- - `data`
  - `rels`
  - `context`
 
-And `data` is an arbitrary object provided by the user
+And `instance` is implicitly provided and contains the canonical normalized representation/state of the entity instance
+
+And `data` is an arbitrary object provided by the user that may be delagated to mutations
 
 ## Mutations
 
-Reserved and user-provided functions that implement and commit state transitions
+Reserved and user-provided functions that implement and commit state transitions to entity instances and contexts
 
 Whenever `context` or `semantics` are mutated, they will invoke the context `@strategies` defined in the parent `Gooey.Outline`.
 
@@ -385,6 +395,7 @@ and `instance` represents the canonical normalized state of the entity instance 
 Any changes made to entity properties that are relationships/links to other entities will be delegated to those related entity instances.
 
 An entity's `context` may also be safely modified in mutations. Changes to this context will be delegated to all entity instances of that type.
+ - Actually, that might be dumb. We might want tointroduce a special action-like construct for delegating events to entity contexts. We can call it `broadcast` or something.
 
 Mutations may not trigger other mutations (actions are for grouping together and orchestrating mutations).
 
@@ -398,8 +409,8 @@ DispatchAction(Rel, Entity, Data) --->
   EntityInstances = FindEntities(Entity, Rel)
 
   Broadcast(Entity, EntityInstances, ParentEntity?) -->>
-    EntityStores = StoresOf(Entity)
+    EntitySources = SourcesOf(Entity)
 
-    SyncSubscribers(EntityStores)
+    SyncSubscribers(EntitySources)
     SyncSubscribers(EntityInstances) -->>
       Recurse(Broadcast, [ChildEntity, ChildEntityInstances, ChildEntity => ChildEntity.Parent])
