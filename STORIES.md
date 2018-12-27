@@ -57,15 +57,23 @@ A: We may need to introduce a JSON micro-format that allows APIs to provide all 
 TODO
 
  - Allow user to view the carts across all of their stores regardless of which store they are currently shopping in
- - Really only need to update the list of products that the user is allowed to browse throug (we might need to allow `@cascade` to support both an entity and an action)
+ - Really only need to update the list of products that the user is allowed to browse through (we might need to allow `@cascade` to support both an entity and an action)
    * We only want to update the list of products such that it that doesn't affect any products being used in the user's cart, items, orders or lists!
      - We might want to add a property to our actions that allows us to limit the scope of the action to entities instances who have no semenatic relationships established, other than to the root/invoking entity instance.
 
 ## B. "As a user, I want to add items to a shopping cart for each store that I'm shopping"
 
+TODO
+
+ - Automatically create a cart for the user when adding their first item (this can happen implicitly if the `item` response contains an identifiable reference to `cart`)
+
 ## C. "As a user, I want to remove items from my shopping cart(s)"
 
 ## D. "As a user, I want to place orders based on the items in my cart(s)"
+
+TODO
+
+  - Clear out the user's cart and its items upon successful creation of an order (should really just need to clear out the items, which are shared entity instances with cart, causing cart to be implicitly updated)
 
 ## E. "As a user, I want to create lists of products"
 
