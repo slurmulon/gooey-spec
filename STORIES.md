@@ -52,6 +52,15 @@ Q: How do we identify the `product`'s, parent `store`, assuming it isn't already
 A: We may need to introduce a JSON micro-format that allows APIs to provide all of the entity instances related to another entity instance (by their unique identifiers).
    We could also say that a `product` may contain a link to its parent `store`, which would allow the consumer to avoid making an extra API call.
 
+### Scenario 3: User switches from one store's page to another
+
+TODO
+
+ - Allow user to view the carts across all of their stores regardless of which store they are currently shopping in
+ - Really only need to update the list of products that the user is allowed to browse throug (we might need to allow `@cascade` to support both an entity and an action)
+   * We only want to update the list of products such that it that doesn't affect any products being used in the user's cart, items, orders or lists!
+     - We might want to add a property to our actions that allows us to limit the scope of the action to entities instances who have no semenatic relationships established, other than to the root/invoking entity instance.
+
 ## B. "As a user, I want to add items to a shopping cart for each store that I'm shopping"
 
 ## C. "As a user, I want to remove items from my shopping cart(s)"
