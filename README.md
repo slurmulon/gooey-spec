@@ -86,7 +86,7 @@ It is specifically designed to provide semantic solutions the state problems tha
 
 Gooey solves the variable state represenation issue by:
 
-1. Formally describing the **relationships** between localized and remote API resource entity states.
+1. Formally describing the semantic **relationships** between localized and remote API resource entity states.
 2. Outlining how these states and their relationships should be managed, opening up interesting opportunities for highly generalized state management libraries and state debugging tools.
 3. Defining the potential origins/sources of a state, such as local session memory, the browser URL, a Restful Web API resource, a Service Worker, or IndexedDB.
 4. Describing a procedure for resolving URI templates using active entity states (`/v1/orders/{$ref.orders.one.uuid}`)
@@ -100,7 +100,7 @@ Gooey solves the variable state represenation issue by:
 - States can be initialized from one or more of the provided sources
 - State transitions may be version controlled
 - Support referencing of elements using JSON Pointers in order to keep definitions DRY
-- Complementary and minimally invasive. You don't always have to use it
+- Complementary and minimally invasive. You don't always have to use it, nor should APIs be forced to modify the response of their formats
 - Complete interopability with any JSON-based Hypermedia specification (JSON Hyper-Schema, JSON L-D, HAL, Siren, etc.)
 
 ### Flows
@@ -186,7 +186,12 @@ Gooey solves the variable state represenation issue by:
         { "type": "memory.ram", "rels": ["one", "all"] },
         { "type": "api": "rel": "one", "url": "/cart" },
         { "type": "api", "rel": "all", "url": "/carts" }
-      ]
+      ],
+      "@entities": {
+        "items": {
+          "@ref": "#/entities/products"
+        }
+      }
     },
     "orders": {
       "@sources": [
