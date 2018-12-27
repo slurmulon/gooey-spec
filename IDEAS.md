@@ -226,7 +226,11 @@ We really need to start creating and integrating more constructs for describing 
 const user = {
   "@ref": "user",
   "@type": "object",
-  "@origins": {},
+  "@origins": {
+    "api": {
+      "@href": "/v1/user"
+    }
+  },
   "@entities: {
     "shops" {
       "@type": "shop"
@@ -291,24 +295,8 @@ const product = {
       "@params: {
         id: "#/uuid"
       }
-    },
-    // TODO: Can this just be implicitly inferred from the `products` definition (since it's already an `"array"`)? Probably.
-    "object": {
-      "@type": "products",
-      "@path": "#"
     }
-  },
-  // FIXME: Meh, not very elegant or flexible
-  "@cascade": [
-    {
-      "@entity": "shop",
-      "@actions": ['fetch', 'create', 'update', 'delete']
-    },
-    {
-      "@entity": "item",
-      "@actions": ['create', 'update', 'delete']
-    }
-  ]
+  }
 }
 
 const products = {
@@ -325,7 +313,10 @@ const products = {
         }
       }
     },
-    "object": { // TODO: Allow this to be an array, that way the user can specify any number of `"object"` sources!
+    // TODO: Allow this to be an array, that way the user can specify any number of `"object"` sources!
+    // FIXME: This can just be inferred from the `shop` `@entities` property. Hmmm. Seems to be a conflict of interest here between `@origins.object` and `@entities`.
+    //  - Can probably just do away with the `object` origin concept altogether.
+    "object": {
       "@type": "shop",
       "@path": "#/products"
     }
@@ -343,6 +334,12 @@ const cart = {
           "@type": "store",
           "@path": "#/uuid"
         }
+      }
+    },
+    "route": {
+      "@url": "/cart/{id}",
+      "@params: {
+        id: "#/uuid"
       }
     }
   },
@@ -365,6 +362,7 @@ const carts = {
   "@origins": {}
 }
 
+// Q: How will `item` automatically inherit and synchronize with changes made to its parent `product`?
 const item = {
   "@ref": "item",
   "@type": "object",
@@ -693,4 +691,5 @@ Action(Topic, Rel, Entity, Data) --->
    * If we change the `selected` User, we want to clear out `all` of the Orders
  - Details need to be sorted out on how to handle collections vs. items, particularly around their `@resources`
  - Might need to instroduce the concept of abstract entity relationships
- - Defining semantically similar `@origins/object` and `@entities` definitions can be verbose and potentially lead to conflict or ambiguities 
+ - Defining semantically similar `@origins/object` and `@entities` definitions can be verbose and potentially lead to conflict or ambiguities
+ - Right now entities are describing their relationships to their child entities - perhaps things would be easier if we inverted this and had entities describe the relationship to their parent(s)?
