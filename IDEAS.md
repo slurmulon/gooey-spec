@@ -160,6 +160,8 @@ this.store.dispatch({
 
 ### Example
 
+#### V1
+
 ```js
 new Gooey.Outline({
   @origins: {
@@ -190,6 +192,10 @@ new Gooey.Outline({
                 api: ({ parent }) => `/v1/library/${parent.instance.uuid}/books`,
                 object: ({ parent }) => parent.instance.books
               },
+              @sync: {
+                up: ['create', update', 'delete'],
+                down: ['update', 'delete'],
+              },
               @entities: {
                 reviews: {
                   @type: 'array',
@@ -210,11 +216,180 @@ new Gooey.Outline({
 })
 ```
 
+#### V2
+
+So far this is just a crude mocker of JSON Hyper-Schema.
+
+We really need to start creating and integrating more constructs for describing the dataflow between related entities in order to make this worthwhile.
+
 ```js
+const user = {
+  "@ref": "user",
+  "@type": "object",
+  "@origins": {},
+  "@entities: {
+    "shops" {
+      "@type": "shop"
+    }
+  }
+}
 
+const shop = {
+  "@ref": "shop",
+  "@type": "object",
+  "@origins": {
+    "api": {
+      "@href": "/v1/shop/{id}",
+      "@params": {
+        id: "#/uuid"
+      }
+    },
+    "route": {
+      "@url": "/shop/{id}",
+      "@params: {
+        id: "#/uuid"
+      }
+    }
+  },
+  "@entities: {
+    "#/products": {
+      "@type": "products",
+      "@cascade": "*"
+    },
 
-new Gooey.Outline({
-  
+    "#/cart": {
+      "@type": "cart",
+      "@cascade": "*"
+    }
+  }
+}
+
+const shops = {
+  "@ref": "shops",
+  "@type": "array",
+  "@items: "shop",
+  "@origins": {
+    "api": `/v1/shops`
+  }
+}
+
+const product = {
+  "@ref": "product",
+  "@type": "object",
+  "@origins": {
+    "api": {
+      "@href": "/v1/product/{id}",
+      "@params": {
+        "id": {
+          "@type": "product",
+          "@path": "#/uuid
+        }
+      }
+    },
+    "route": {
+      "@url": "/product/{id}",
+      "@params: {
+        id: "#/uuid"
+      }
+    },
+    // TODO: Can this just be implicitly inferred from the `products` definition (since it's already an `"array"`)? Probably.
+    "object": {
+      "@type": "products",
+      "@path": "#"
+    }
+  },
+  // FIXME: Meh, not very elegant or flexible
+  "@cascade": [
+    {
+      "@entity": "shop",
+      "@actions": ['fetch', 'create', 'update', 'delete']
+    },
+    {
+      "@entity": "item",
+      "@actions": ['create', 'update', 'delete']
+    }
+  ]
+}
+
+const products = {
+  "@ref": "products",
+  "@type": "array",
+  "@items": "product",
+  "@origins": {
+    "api": {
+      "@href": "/v1/store/{store}/products",
+      "@params": {
+        "store": {
+          "@type": "store",
+          "@path": "#/uuid"
+        }
+      }
+    },
+    "object": { // TODO: Allow this to be an array, that way the user can specify any number of `"object"` sources!
+      "@type": "shop",
+      "@path": "#/products"
+    }
+  }
+}
+
+const cart = {
+  "@ref": "cart",
+  "@type": "object",
+  "@origins": {
+    "api": {
+      "@href": "/v1/store/{store}/cart",
+      "@params": {
+        "store": {
+          "@type": "store",
+          "@path": "#/uuid"
+        }
+      }
+    }
+  },
+  "@entities: {
+    "#/items": {
+      "@type": "item",
+      "@cascade: true
+    },
+    "#/shop": {
+      "@type": "shop",
+      "@cascade": false
+    }
+  }
+}
+
+const carts = {
+  "@ref": "carts",
+  "@type: "array",
+  "@items": "cart",
+  "@origins": {}
+}
+
+const item = {
+  "@ref": "item",
+  "@type": "object",
+  "@origins: {},
+  "@entities: {
+    "#/product": {
+      "@type": "product",
+      "@cascade": false
+    }
+  }
+}
+
+const schema = new Gooey.Schema({
+  "@entities": [
+    user,
+    shop,
+    shops,
+    product,
+    products,
+    cart,
+    carts,
+    item
+  ],
+  // This says "look for entity instances states first in the `route`, then in a parent `object`, and then, if those resources don't have what we want, fetch the state from the `api`
+  "@pipeline": ['route', 'object', 'api']
 })
 ```
 
@@ -315,49 +490,6 @@ or
   }
 }
 ```
-
-## Strategies
-
-> **Note**
->
-> Can/should probably remove the need for this by allowing each entity to specify the priority/ordering of their instance state `@origins`
-
-Reserved and user-provided functionality which determines how an entity should behave whenever any of its entity instance context objects change.
-
-Reserved strategies provided as an `Object` describe a natively supported semantic action (indexed by `@ref`):
-
-```
-{
-  "@ref: "expect-or-fetch",
-  "@sync": "push"
-}
-```
-
-Strategies provided as a `Function` accept the following arguments:
-
-```
-strategy ({ store, instance, entity })
-```
-
- - `store`: Allows strategies to invoke actions or mutations based on custom conditions via `dispatch` and `commit`
- - `instance`: Reference to entity instance
- - `entity`: Parent entity to the entity instance
-
-### Example
-
-The following example specifies that, when loaded for first use, the entity's state should always be fetched from its root resource.
-
-It also specifies that all children `@entity` states should be whiped out entirely whenever the entity's context changes.
-
-```
-"@strategies": {
-  "@fetch": "always-fetch",
-  "@change": "clear-children"
-},
-```
-
-### Core
-
 ## Actions
 
 Reserved and user-provided functions that organize and coordinate state transitions
@@ -395,7 +527,7 @@ Where `store` is implicitly provided and contains:
  - `commit`: Calls a mutation on a single entity instance
  - `dispatch`: Calls an action on a single entity instance
  - `broadcast`: Calls an action scoped to the entity's context, affecting all entity instances
- - `cascade`: Calls an action scoped to either a single entity instance or an entity's context and delgates to all children
+ - `cascade`: Calls an action scoped to either a single entity instance or an entity's context and delgates to all children (TODO: This should, instead, be a configurable property that can be used in any of the actions)
 
 And `entity` is implicitly provided and contains:
  - `rels`
@@ -434,6 +566,71 @@ An entity's `context` may also be safely modified in mutations. Changes to this 
  - Actually, that might be dumb. We might want to introduce a special action-like construct for delegating events to entity contexts. We can call it `broadcast` or something.
 
 Mutations may not trigger other mutations (actions are for grouping together and orchestrating mutations).
+
+## Lineage
+
+Lineages provide a standardized mechanism for allowing clients to efficiently determine all of the entity instances related to another entity instance.
+
+This construct emerged from the philosophy that, when working with related data in a rooted tree (i.e. each vertex can have at most one parent), a consumer should only need to know about one normalized entity in the relationship tree in order to infer any of its related entities.
+
+We can never assume that an entity will _ever_ provide a reference to any of its related parent entities within its own representation. Some entity domains are so complex that this just isn't even possible.
+
+Popular tools such as GraphQL, although immensely powerful, greatly contribute to this dynamic.
+
+In any case, lineages eliminate the need for canonical resources to provide all of the related entities with each entity instance represenation. This circumvents the classic "jungle" anti-pattern coined by Joe Armstrong:
+
+> The problem with object-oriented languages is they’ve got all this implicit environment that they carry around with them. You wanted a banana but what you got was a gorilla holding the banana and the entire jungle. — Joe Armstrong
+
+### Case
+
+Say the user is viewing a product for purchase. The resource representation for the `product` might not include a property referring to its surrounding parent `store`.
+
+Even if it did, that `store` object is even less likely to contain a reference to its parent `company` object. See where this is going?
+
+A novice solution to this problem is to update your canonical resource so that it includes everything you need. This is most often seen in URLs for SPAs:
+
+ - Bad: `/shop/
+
+Now, this standard is flexible and powerful enough to automatically detect any related entity instances found in the representation of another entity instance. But it's not a mind reader, and as soon as it reaches an entity instance without any denormalized references to its own relatives, we reach the same exact problem.
+
+This means that, for those entity instances which do _not_ contain denormalized references to their parent entity instances, we need some other way to obtain this information. This is where lineages come in.
+
+### Spec
+
+`Gooey.Lineage` is a JSON microformat that describes the relationships between entity instances. It is processed by both the consumer and producer of entity instances.
+
+Lineages are acquired by performing HTTP GET requests to entity resources adhering to the following URI template:
+
+`{scheme}://{host}/**/*/{entity}/{id}/?lineage`
+
+The response must then adhere to the following format:
+
+```json
+{
+  "{entity}": "{id}",
+  "{related-entity>}: {id}",
+  "{related-entity>}: {id}",
+  ...
+}
+```
+
+#### Example
+
+Applied to our previous example, if we wanted to acquire the lineage for a specific `product`, we would make the following request:
+
+`GET /v1/product/12345/?lineage`
+
+and receive the following response:
+
+```json
+{
+  "product": 12345,
+  "shop": 93757,
+  "company": 84625
+}
+```
+
+It's also worth noting that equivelant functionality can be achieved entirely via GraphQL queries. However, standardizing the format of entity instance lineages has an advantage since this allows for standardized solutions to the problem.
 
 ## Dataflow
 
@@ -494,4 +691,6 @@ Action(Topic, Rel, Entity, Data) --->
    * Perhaps we could allow a nice JS-exclusive API (or more generically define an API that can be implemented in any language) that allows users to either override or provide advanced functionality to their configurations in run-time.
  - `rel` feels a bit ambiguous when it comes to how `action`s should be implicitly cascaded to related entities/instances
    * If we change the `selected` User, we want to clear out `all` of the Orders
- - Details need to be sorted out on how to handle collections vs. items, particularly around their `@resources`.
+ - Details need to be sorted out on how to handle collections vs. items, particularly around their `@resources`
+ - Might need to instroduce the concept of abstract entity relationships
+ - Defining semantically similar `@origins/object` and `@entities` definitions can be verbose and potentially lead to conflict or ambiguities 
