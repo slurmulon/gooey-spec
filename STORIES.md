@@ -32,7 +32,7 @@
 
 # Stories
 
-## "As a user, I want to browse and shop for products in a store"
+## A. "As a user, I want to browse and shop for products in a store"
 
 ### Scenario 1: User visits a store's page
 
@@ -49,17 +49,33 @@
 4. Fetch all child entities (e.g. `cart`, `items`)
 
 Q: How do we identify the `product`'s, parent `store`, assuming it isn't already part of the URL?
-A: We may need to introduce a JSON micro-format that allows APIs to provide all of the entity instances related to a provided entity instance (by their unique identifiers).
+A: We may need to introduce a JSON micro-format that allows APIs to provide all of the entity instances related to another entity instance (by their unique identifiers).
    We could also say that a `product` may contain a link to its parent `store`, which would allow the consumer to avoid making an extra API call.
 
-## "As a user, I want to add items to a shopping cart for each store that I'm shopping"
+## B. "As a user, I want to add items to a shopping cart for each store that I'm shopping"
 
-## "As a user, I want to remove items from my shopping cart(s)"
+## C. "As a user, I want to remove items from my shopping cart(s)"
 
-## "As a user, I want to place orders based on the items in my cart(s)"
+## D. "As a user, I want to place orders based on the items in my cart(s)"
 
-## "As a user, I want to create lists of products"
+## E. "As a user, I want to create lists of products"
 
-## "As a user, I want to browse all of my current and past orders"
+## F. "As a user, I want to browse all of my current and past orders"
 
-## "As a user, whenever a store stops selling a product, I need that product removed from any cart and lists that may contain it"
+## G. "As a user, whenever a store stops selling a product, I need that product removed from any cart and lists that may contain it"
+
+### Scenario 1: User is viewing the page for a product as it is being deleted
+
+1. Client receives push event from the API that refreshes its list of available `products`
+2. The primary entity instance is purged from all remaining resources (e.g. `memory`, `storage.local`, etc.)
+3. All of the entity instances related to the primary entity instance are recursively updated so that they no longer reference the primary entity instance (i.e. `lists, items -> [cart, orders]`)
+ - Another way of handling this is to simply "refresh" all of the related entity instances. It's more crude and requires an extra network call, but it minimizes the potential for data drift.
+
+Q: How do we know if the server or client should be responsible for deleting the related entities?
+A: The server should definitely be responsible for cascading the deletions. Perhaps it's fine to lock-in to this behavior.
+   One way we could provide more flexibility here is to allow users to specify the `@resource` scope of their actions.
+
+## H. "As a user, I need to be able to securely logout of my shopping session"
+
+1. Recursively reset the states of all dependent entity instances, but ONLY in the client!
+ - We could introduce a semantic value around `@resources` that specifies whether it's local or remote, which would allow users to simply say `@resources: 'local'` in their actions.
